@@ -1,6 +1,7 @@
 import { db, setMeta, type Account, type Category, type Transaction } from '../db';
 import { todayISO } from './dates';
 
+// Internal id from before the app was named «Заначка»; changing it would reject existing backups.
 const APP_ID = 'my-finance';
 
 export interface Backup {
@@ -31,7 +32,7 @@ export async function downloadBackup(): Promise<void> {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = `finance-backup-${todayISO()}.json`;
+  link.download = `zanachka-backup-${todayISO()}.json`;
   document.body.append(link);
   link.click();
   link.remove();
@@ -51,7 +52,7 @@ export async function readBackup(file: File): Promise<Backup> {
     Array.isArray(data.accounts) &&
     Array.isArray(data.categories) &&
     Array.isArray(data.transactions);
-  if (!valid) throw new Error('Это не резервная копия «Моих финансов».');
+  if (!valid) throw new Error('Это не резервная копия «Заначки».');
   return data as Backup;
 }
 

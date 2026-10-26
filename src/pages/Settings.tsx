@@ -110,7 +110,7 @@ export default function Settings() {
         </div>
       </Section>
 
-      <p className="version">Мои финансы · версия {APP_VERSION}</p>
+      <p className="version">Заначка · версия {APP_VERSION}</p>
     </>
   );
 }

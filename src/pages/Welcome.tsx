@@ -55,7 +55,7 @@ export default function Welcome() {
         ))}
       </div>
 
-      <h1 className="welcome__title">Мои финансы</h1>
+      <h1 className="welcome__title">Заначка</h1>
       <p className="welcome__lead">
         Отметьте, где лежат ваши деньги, и впишите, сколько там сейчас. Названия и цвета можно поменять потом.
       </p>

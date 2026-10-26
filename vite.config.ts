@@ -5,7 +5,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 const PAPER = '#F1F3EF';
 
 export default defineConfig({
-  // Relative base so the build works from any folder (e.g. GitHub Pages /my-finance/).
+  // Relative base so the build works from any folder (e.g. GitHub Pages /zanachka/).
   base: './',
   server: { host: true },
   plugins: [
@@ -15,8 +15,8 @@ export default defineConfig({
       includeAssets: ['favicon.svg'],
       manifest: {
         id: './',
-        name: 'Мои финансы',
-        short_name: 'Финансы',
+        name: 'Заначка',
+        short_name: 'Заначка',
         description: 'Учёт доходов и расходов, чтобы откладывать больше',
         lang: 'ru',
         dir: 'ltr',

@@ -49,6 +49,7 @@ export interface Meta {
   value: unknown;
 }
 
+// The database keeps its original name: renaming it would leave existing data behind.
 export const db = new Dexie('my-finance') as Dexie & {
   accounts: EntityTable<Account, 'id'>;
   categories: EntityTable<Category, 'id'>;
