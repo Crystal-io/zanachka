@@ -57,6 +57,7 @@ export default function TxForm() {
   const [toAccountId, setToAccountId] = useState<number | null>(null);
   const [date, setDate] = useState(todayISO());
   const [note, setNote] = useState('');
+  const [recurringId, setRecurringId] = useState<number | null>(null);
   const [ready, setReady] = useState(false);
 
   const usableAccounts = useMemo(
@@ -89,7 +90,7 @@ export default function TxForm() {
   );
 
   useEffect(() => {
-    if (ready || !accounts || !recent || existing === undefined) return;
+    if (ready || !accounts || !categories || !recent || existing === undefined) return;
     if (existing) {
       setType(existing.type);
       setAmount(centsToInput(existing.amount));
@@ -99,12 +100,25 @@ export default function TxForm() {
       setDate(existing.date);
       setNote(existing.note);
     } else {
-      const { fromId, toId } = defaultAccounts(type, null);
+      // Opened from a regular payment in the plan: prefill it, paid from the same account as last time.
+      const fromPlan = Number(params.get('recurring')) || null;
+      const lastLinked = fromPlan ? [...recent].sort(byNewest).find((t) => t.recurringId === fromPlan) : undefined;
+      const lastAccount =
+        lastLinked && usableAccounts.some((a) => a.id === lastLinked.accountId && !a.archived)
+          ? lastLinked.accountId
+          : null;
+      const { fromId, toId } = defaultAccounts(type, lastAccount);
       setAccountId(fromId);
       setToAccountId(toId);
+      const presetAmount = Number(params.get('amount'));
+      if (presetAmount > 0) setAmount(centsToInput(presetAmount));
+      const presetCategory = Number(params.get('category'));
+      if (categories.some((c) => c.id === presetCategory && c.kind === type)) setCategoryId(presetCategory);
+      setNote(params.get('note') ?? '');
+      setRecurringId(fromPlan);
     }
     setReady(true);
-  }, [ready, accounts, recent, existing, type, defaultAccounts]);
+  }, [ready, accounts, categories, recent, existing, type, defaultAccounts, params, usableAccounts]);
 
   const changeType = (t: TxType) => {
     setType(t);
@@ -157,11 +171,11 @@ export default function TxForm() {
       note: note.trim(),
     };
     if (existing) await db.transactions.update(existing.id, data);
-    else await db.transactions.add({ ...data, createdAt: Date.now() });
+    else await db.transactions.add({ ...data, ...(recurringId ? { recurringId } : {}), createdAt: Date.now() });
     navigator.vibrate?.(12);
     toast({ message: existing ? 'Изменения сохранены' : SAVED_MESSAGE[type] });
     goBack();
-  }, [problem, type, cents, accountId, toAccountId, categoryId, date, note, existing, toast, goBack]);
+  }, [problem, type, cents, accountId, toAccountId, categoryId, date, note, recurringId, existing, toast, goBack]);
 
   const remove = async () => {
     if (!existing) return;

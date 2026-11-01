@@ -1,7 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Trash } from 'lucide-react';
+import { ChevronRight, Plus, Trash } from 'lucide-react';
 import { useEffect, useState, type CSSProperties } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useConfirm, useToast } from '../components/Feedback';
 import { Field, Segmented, SwitchRow, TopBar } from '../components/ui';
 import { db, type CategoryKind, type Period } from '../db';
@@ -9,7 +9,7 @@ import { useCategories, useGoBack } from '../hooks';
 import { shortDate, todayISO } from '../lib/dates';
 import { centsToInput, formatMoney, parseAmount } from '../lib/format';
 import { Icon } from '../lib/icons';
-import { PERIOD_ORDER, PERIODS, perMonth, upcoming } from '../lib/plan';
+import { PERIOD_ORDER, PERIODS, perMonth, recordUrl, upcoming } from '../lib/plan';
 
 const KINDS: { value: CategoryKind; label: string }[] = [
   { value: 'expense', label: 'Расход' },
@@ -222,6 +222,11 @@ export default function RecurringEditor() {
 
         {existing && (
           <div className="field list">
+            <Link to={recordUrl(existing)} className="row">
+              <Plus size={20} strokeWidth={1.75} />
+              <span className="row__label">{isExpense ? 'Записать платёж сейчас' : 'Записать поступление сейчас'}</span>
+              <ChevronRight size={18} className="row__chev" />
+            </Link>
             <button type="button" className="row row--danger" onClick={remove}>
               <Trash size={20} strokeWidth={1.75} />
               <span className="row__label">Удалить из плана</span>

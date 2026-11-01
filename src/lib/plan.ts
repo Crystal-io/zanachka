@@ -22,6 +22,9 @@ export const PERIOD_ORDER: Period[] = ['week', 'month', 'quarter', 'year'];
 
 const MONTH_STEP = { month: 1, quarter: 3, year: 12 } as const;
 
+/** How early a recorded payment still counts towards the next due date. */
+const EARLY_DAYS: Record<Period, number> = { week: 3, month: 15, quarter: 45, year: 182 };
+
 type Schedule = Pick<Recurring, 'period' | 'startDate'>;
 
 /** Average cost per month, in cents: a 480 € yearly payment is 40 € a month. */
@@ -51,6 +54,27 @@ export function upcoming(r: Schedule, count: number, today = todayISO()): string
   return occurrences(r, today, addDays(today, 800)).slice(0, count);
 }
 
+/**
+ * Date of the operation that already pays the next due date, if any: rent
+ * recorded on the 3rd covers the 5th. A payment after the due date belongs to
+ * that past date, so it doesn't count for the next one.
+ */
+export function paidOn(r: Recurring, linkedDates: string[] | undefined, today = todayISO()): string | null {
+  if (!linkedDates?.length) return null;
+  const next = upcoming(r, 1, today)[0];
+  if (!next) return null;
+  const windowStart = addDays(next, -EARLY_DAYS[r.period]);
+  const hits = linkedDates.filter((d) => d >= windowStart && d <= today).sort();
+  return hits.at(-1) ?? null;
+}
+
+/** Link to a new operation prefilled from the regular payment. */
+export function recordUrl(r: Recurring): string {
+  const params = new URLSearchParams({ type: r.kind, amount: String(r.amount), note: r.name, recurring: String(r.id) });
+  if (r.categoryId != null) params.set('category', String(r.categoryId));
+  return `/add?${params}`;
+}
+
 /** 'Каждый месяц, 5-го', 'Раз в год, 12 марта', 'Раз в квартал · ближайший 5 декабря'. */
 export function describeSchedule(r: Schedule): string {
   switch (r.period) {
@@ -78,10 +102,20 @@ export interface ForecastRow {
 
 /**
  * Month-by-month projection from today's balance. In the current month only
- * payments from today on are counted: earlier ones are already in the balance.
+ * payments from today on are counted: earlier ones are already in the balance,
+ * and so is a next payment that was recorded ahead of its date.
  */
-export function forecast(items: Recurring[], startBalance: number, months = 12, today = todayISO()): ForecastRow[] {
+export function forecast(
+  items: Recurring[],
+  startBalance: number,
+  linked?: Map<number, string[]>,
+  months = 12,
+  today = todayISO(),
+): ForecastRow[] {
   const active = items.filter((r) => r.active);
+  const alreadyPaid = new Map(
+    active.filter((r) => paidOn(r, linked?.get(r.id), today)).map((r) => [r.id, upcoming(r, 1, today)[0]]),
+  );
   const rows: ForecastRow[] = [];
   let balance = startBalance;
   for (let i = 0; i < months; i++) {
@@ -91,7 +125,8 @@ export function forecast(items: Recurring[], startBalance: number, months = 12, 
     let income = 0;
     let expense = 0;
     for (const r of active) {
-      const total = occurrences(r, from, monthEnd).length * r.amount;
+      const dates = occurrences(r, from, monthEnd).filter((d) => d !== alreadyPaid.get(r.id));
+      const total = dates.length * r.amount;
       if (r.kind === 'income') income += total;
       else expense += total;
     }

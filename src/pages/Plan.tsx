@@ -1,12 +1,19 @@
-import { CalendarClock, Plus } from 'lucide-react';
+import { CalendarClock, Check, Plus } from 'lucide-react';
 import { useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { CatIcon, Section, TopBar } from '../components/ui';
 import type { Category, CategoryKind, Recurring } from '../db';
-import { useActualSavings, useById, useCategories, useRecurring, useTotalBalance } from '../hooks';
-import { currentMonth, monthGenitive, monthPrepositional, monthShortTitle } from '../lib/dates';
+import {
+  useActualSavings,
+  useById,
+  useCategories,
+  useLinkedPayments,
+  useRecurring,
+  useTotalBalance,
+} from '../hooks';
+import { currentMonth, monthGenitive, monthPrepositional, monthShortTitle, shortDate } from '../lib/dates';
 import { formatMoney, formatWhole, moneyParts } from '../lib/format';
-import { describeSchedule, forecast, monthlyTotals, perMonth } from '../lib/plan';
+import { describeSchedule, forecast, monthlyTotals, paidOn, perMonth, recordUrl } from '../lib/plan';
 
 /** Regular payments and income, what is left each month, and a 12-month projection. */
 export default function Plan() {
@@ -15,10 +22,14 @@ export default function Plan() {
   const categoryById = useById(categories);
   const balance = useTotalBalance();
   const actual = useActualSavings();
+  const linked = useLinkedPayments();
 
-  const rows = useMemo(() => (items && balance !== undefined ? forecast(items, balance) : []), [items, balance]);
+  const rows = useMemo(
+    () => (items && balance !== undefined ? forecast(items, balance, linked) : []),
+    [items, balance, linked],
+  );
 
-  if (!items || balance === undefined || !categories) return null;
+  if (!items || balance === undefined || !categories || !linked) return null;
 
   const totals = monthlyTotals(items);
   const freeParts = moneyParts(totals.free);
@@ -89,8 +100,20 @@ export default function Plan() {
               )}
             </section>
 
-            <RecurringList kind="expense" items={ordered('expense')} total={totals.expense} categoryById={categoryById} />
-            <RecurringList kind="income" items={ordered('income')} total={totals.income} categoryById={categoryById} />
+            <RecurringList
+              kind="expense"
+              items={ordered('expense')}
+              total={totals.expense}
+              categoryById={categoryById}
+              linked={linked}
+            />
+            <RecurringList
+              kind="income"
+              items={ordered('income')}
+              total={totals.income}
+              categoryById={categoryById}
+              linked={linked}
+            />
 
             <Section title="Прогноз по месяцам">
               <div className="forecast-wrap">
@@ -137,11 +160,13 @@ function RecurringList({
   items,
   total,
   categoryById,
+  linked,
 }: {
   kind: CategoryKind;
   items: Recurring[];
   total: number;
   categoryById: Map<number, Category>;
+  linked: Map<number, string[]>;
 }) {
   const navigate = useNavigate();
   return (
@@ -153,27 +178,39 @@ function RecurringList({
         <div className="tx-list">
           {items.map((r) => {
             const category = r.categoryId != null ? categoryById.get(r.categoryId) : undefined;
+            const paid = r.active ? paidOn(r, linked.get(r.id)) : null;
+            const sub = !r.active
+              ? 'На паузе — не входит в прогноз'
+              : paid
+                ? `Записано ${shortDate(paid).toLowerCase()}`
+                : describeSchedule(r);
             return (
-              <button
-                key={r.id}
-                type="button"
-                className={r.active ? 'tx' : 'tx is-paused'}
-                onClick={() => navigate(`/plan/${r.id}`)}
-              >
-                <CatIcon icon={category?.icon ?? 'repeat'} color={category?.color ?? '#6B7680'} />
-                <span className="tx__main">
-                  <span className="tx__title">{r.name}</span>
-                  <span className="tx__sub">{r.active ? describeSchedule(r) : 'На паузе — не входит в прогноз'}</span>
-                </span>
-                <span className="rec__amount">
-                  <span className={`tx__amount tx__amount--${kind}`}>
-                    {kind === 'income' ? formatMoney(r.amount, { sign: true }) : formatMoney(r.amount)}
+              <div key={r.id} className={r.active ? 'rec' : 'rec is-paused'}>
+                <button type="button" className="tx" onClick={() => navigate(`/plan/${r.id}`)}>
+                  <CatIcon icon={category?.icon ?? 'repeat'} color={category?.color ?? '#6B7680'} />
+                  <span className="tx__main">
+                    <span className="tx__title">{r.name}</span>
+                    <span className={paid ? 'tx__sub is-paid' : 'tx__sub'}>{sub}</span>
                   </span>
-                  {r.period !== 'month' && (
-                    <span className="rec__monthly">≈&nbsp;{formatMoney(perMonth(r), { whole: true })}/мес</span>
-                  )}
-                </span>
-              </button>
+                  <span className="rec__amount">
+                    <span className={`tx__amount tx__amount--${kind}`}>
+                      {kind === 'income' ? formatMoney(r.amount, { sign: true }) : formatMoney(r.amount)}
+                    </span>
+                    {r.period !== 'month' && (
+                      <span className="rec__monthly">≈&nbsp;{formatMoney(perMonth(r), { whole: true })}/мес</span>
+                    )}
+                  </span>
+                </button>
+                {r.active && (
+                  <Link
+                    to={recordUrl(r)}
+                    className={paid ? 'rec__record is-paid' : 'rec__record'}
+                    aria-label={paid ? `«${r.name}» уже записан. Записать ещё раз` : `Записать «${r.name}»`}
+                  >
+                    {paid ? <Check size={18} strokeWidth={2.25} /> : <Plus size={18} strokeWidth={2.25} />}
+                  </Link>
+                )}
+              </div>
             );
           })}
         </div>

@@ -32,6 +32,17 @@ export function useRecurring(): Recurring[] | undefined {
   return useLiveQuery(() => db.recurring.toArray(), []);
 }
 
+/** Dates of operations recorded from each regular payment, by its id. */
+export function useLinkedPayments(): Map<number, string[]> | undefined {
+  return useLiveQuery(async () => {
+    const linked = new Map<number, string[]>();
+    for (const t of await db.transactions.where('recurringId').aboveOrEqual(0).toArray()) {
+      if (t.recurringId != null) linked.set(t.recurringId, [...(linked.get(t.recurringId) ?? []), t.date]);
+    }
+    return linked;
+  }, []);
+}
+
 /** Total on active accounts that count towards the overall balance. */
 export function useTotalBalance(): number | undefined {
   const accounts = useAccounts();

@@ -10,7 +10,7 @@ import { downloadBackup, readBackup, restoreBackup } from '../lib/backup';
 import { daysSince } from '../lib/dates';
 import { plural } from '../lib/format';
 
-const APP_VERSION = '0.2.0';
+const APP_VERSION = '0.3.0';
 
 function ago(timestamp: number): string {
   const days = daysSince(timestamp);

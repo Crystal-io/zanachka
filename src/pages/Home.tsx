@@ -11,6 +11,7 @@ import {
   useBalances,
   useById,
   useCategories,
+  useLinkedPayments,
   useMeta,
   useMonthTransactions,
   useRecurring,
@@ -42,6 +43,7 @@ export default function Home() {
   const txCount = useLiveQuery(() => db.transactions.count(), []);
   const lastBackupAt = useMeta<number>('lastBackupAt');
   const recurring = useRecurring();
+  const linked = useLinkedPayments();
   const accountById = useById(accounts);
   const categoryById = useById(categories);
   const [showAllCategories, setShowAllCategories] = useState(false);
@@ -114,7 +116,7 @@ export default function Home() {
         )}
       </section>
 
-      <PlanCard items={recurring ?? []} balance={total} />
+      <PlanCard items={recurring ?? []} balance={total} linked={linked} />
 
       {needsBackup && (
         <div className="banner">
@@ -220,10 +222,18 @@ export default function Home() {
 }
 
 /** Teaser for the plan screen: what is left after regular payments and where the balance heads. */
-function PlanCard({ items, balance }: { items: Recurring[]; balance: number }) {
+function PlanCard({
+  items,
+  balance,
+  linked,
+}: {
+  items: Recurring[];
+  balance: number;
+  linked?: Map<number, string[]>;
+}) {
   const hasPlan = items.some((r) => r.active);
   const { free } = monthlyTotals(items);
-  const yearAhead = hasPlan ? forecast(items, balance)[11] : null;
+  const yearAhead = hasPlan ? forecast(items, balance, linked)[11] : null;
 
   return (
     <Link to="/plan" className="plan-card">

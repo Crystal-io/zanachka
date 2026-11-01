@@ -41,6 +41,8 @@ export interface Transaction {
   /** Local date 'YYYY-MM-DD'. */
   date: string;
   note: string;
+  /** Set when recorded from a regular payment in the plan. */
+  recurringId?: number;
   createdAt: number;
 }
 
@@ -85,6 +87,10 @@ db.version(1).stores({
 
 db.version(2).stores({
   recurring: '++id, kind',
+});
+
+db.version(3).stores({
+  transactions: '++id, date, accountId, toAccountId, categoryId, recurringId',
 });
 
 const DEFAULT_CATEGORIES: Omit<Category, 'id' | 'order' | 'archived'>[] = [

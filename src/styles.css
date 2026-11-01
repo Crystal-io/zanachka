@@ -674,6 +674,51 @@ button.note:active {
   margin-top: 20px;
 }
 
+.notes--tail {
+  margin-top: 14px;
+}
+
+/* Drag to reorder: hold a note to lift it, the others make room. */
+.sortable {
+  border-radius: 20px;
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.sortable.is-empty-slot {
+  outline: 1.5px dashed var(--line-strong);
+  outline-offset: -1px;
+  background: color-mix(in srgb, var(--surface-2) 55%, transparent);
+}
+
+.sortable.is-empty-slot > .note {
+  opacity: 0;
+}
+
+.note-lifted {
+  border-radius: 20px;
+  cursor: grabbing;
+  animation: note-lift 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.note-lifted .note {
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.2),
+    0 30px 50px -24px rgb(0 0 0 / 0.55);
+}
+
+.notes-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 12px 0 0;
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+
 /* ───────────── Overview hero ───────────── */
 
 .hero {
@@ -1886,8 +1931,51 @@ button.row:active {
   margin-top: 22px;
 }
 
-.tx.is-paused {
+.rec {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rec > .tx {
+  flex: 1;
+  min-width: 0;
+}
+
+.tx-list > .rec + .rec {
+  border-top: 1px solid var(--line);
+}
+
+.rec.is-paused {
   opacity: 0.5;
+}
+
+.tx__sub.is-paid {
+  color: var(--save);
+}
+
+/* Round "record now" button at the end of a plan row. */
+.rec__record {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--ink);
+  transition:
+    transform 0.12s,
+    background 0.15s;
+}
+
+.rec__record:active {
+  transform: scale(0.92);
+}
+
+.rec__record.is-paid {
+  background: color-mix(in srgb, var(--save) 16%, var(--surface));
+  color: var(--save);
 }
 
 .rec__amount {
@@ -2095,6 +2183,12 @@ button.row:active {
   from {
     opacity: 0;
     transform: translateX(-50%) translateY(30px) rotate(0deg);
+  }
+}
+
+@keyframes note-lift {
+  to {
+    transform: scale(1.035) rotate(-1.6deg);
   }
 }
 
