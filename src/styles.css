@@ -2186,6 +2186,16 @@ button.row:active {
   }
 }
 
+.spin {
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @keyframes note-lift {
   to {
     transform: scale(1.035) rotate(-1.6deg);

@@ -2,6 +2,7 @@ import '@fontsource-variable/unbounded';
 import '@fontsource-variable/onest';
 import '@fontsource-variable/jetbrains-mono';
 import './styles.css';
+import './lib/updates';
 
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';

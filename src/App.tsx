@@ -2,7 +2,9 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { LayoutDashboard, Plus, ScrollText, Settings2, WalletCards } from 'lucide-react';
 import { useEffect } from 'react';
 import { Link, Navigate, NavLink, Outlet, Route, Routes, useLocation, useNavigationType } from 'react-router-dom';
-import { db } from './db';
+import { useToast } from './components/Feedback';
+import { db, getMeta, setMeta } from './db';
+import { applyPendingUpdate } from './lib/updates';
 import AccountEditor from './pages/AccountEditor';
 import Accounts from './pages/Accounts';
 import Categories from './pages/Categories';
@@ -21,7 +23,8 @@ export default function App() {
 
   return (
     <>
-      <ScrollToTop />
+      <RouteEffects />
+      <VersionNotice />
       <Routes>
         <Route path="welcome" element={accountCount > 0 ? <Navigate to="/" replace /> : <Welcome />} />
         <Route element={<TabsLayout />}>
@@ -46,13 +49,45 @@ export default function App() {
   );
 }
 
-/** New screens open at the top; going back keeps the browser's restored scroll position. */
-function ScrollToTop() {
+/**
+ * New screens open at the top; going back keeps the browser's restored scroll
+ * position. Leaving an editor is also the moment a downloaded update can apply.
+ */
+function RouteEffects() {
   const { pathname } = useLocation();
   const navigationType = useNavigationType();
   useEffect(() => {
     if (navigationType !== 'POP') window.scrollTo(0, 0);
+    applyPendingUpdate();
   }, [pathname, navigationType]);
+  return null;
+}
+
+const CHANGELOG_URL = 'https://github.com/Crystal-io/zanachka#что-нового';
+// Effects run twice in development (StrictMode); the notice must show once.
+let versionChecked = false;
+
+/** «Заначка обновлена до версии …» on the first start of a new version. */
+function VersionNotice() {
+  const toast = useToast();
+  useEffect(() => {
+    if (versionChecked) return;
+    versionChecked = true;
+    void (async () => {
+      const seen = await getMeta<string>('lastSeenVersion');
+      if (seen === __APP_VERSION__) return;
+      await setMeta('lastSeenVersion', __APP_VERSION__);
+      // Nothing to announce on a fresh install. Versions before 0.4.0 didn't record themselves,
+      // so existing data means this is an update too.
+      const updated = seen !== undefined || (await db.accounts.count()) > 0;
+      if (updated) {
+        toast({
+          message: `Заначка обновлена до версии ${__APP_VERSION__}`,
+          action: { label: 'Что нового', onClick: () => window.open(CHANGELOG_URL, '_blank', 'noopener') },
+        });
+      }
+    })();
+  }, [toast]);
   return null;
 }
 

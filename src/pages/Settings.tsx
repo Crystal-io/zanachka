@@ -1,5 +1,14 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { CalendarClock, ChevronRight, Download, ShieldCheck, Tags, TriangleAlert, Upload } from 'lucide-react';
+import {
+  CalendarClock,
+  ChevronRight,
+  Download,
+  RefreshCw,
+  ShieldCheck,
+  Tags,
+  TriangleAlert,
+  Upload,
+} from 'lucide-react';
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useConfirm, useToast } from '../components/Feedback';
@@ -9,8 +18,14 @@ import { useMeta } from '../hooks';
 import { downloadBackup, readBackup, restoreBackup } from '../lib/backup';
 import { daysSince } from '../lib/dates';
 import { plural } from '../lib/format';
+import { checkForUpdate, type UpdateCheck } from '../lib/updates';
 
-const APP_VERSION = '0.3.0';
+const UPDATE_MESSAGES: Record<UpdateCheck, string> = {
+  updating: 'Нашлась новая версия — устанавливаю…',
+  latest: `У вас последняя версия — ${__APP_VERSION__}`,
+  offline: 'Нет интернета — проверьте позже',
+  unsupported: 'Обновления проверяются в установленном приложении',
+};
 
 function ago(timestamp: number): string {
   const days = daysSince(timestamp);
@@ -26,6 +41,14 @@ export default function Settings() {
   const lastBackupAt = useMeta<number>('lastBackupAt');
   const counts = useLiveQuery(async () => ({ accounts: await db.accounts.count(), txs: await db.transactions.count() }), []);
   const [persisted, setPersisted] = useState<boolean | null>(null);
+  const [checking, setChecking] = useState(false);
+
+  const checkUpdates = async () => {
+    setChecking(true);
+    const result = await checkForUpdate();
+    setChecking(false);
+    toast({ message: UPDATE_MESSAGES[result] });
+  };
 
   useEffect(() => {
     navigator.storage?.persisted?.().then(setPersisted).catch(() => setPersisted(false));
@@ -115,7 +138,17 @@ export default function Settings() {
         </div>
       </Section>
 
-      <p className="version">Заначка · версия {APP_VERSION}</p>
+      <Section title="Приложение">
+        <div className="list">
+          <button type="button" className="row" onClick={checkUpdates} disabled={checking}>
+            <RefreshCw size={20} strokeWidth={1.75} className={checking ? 'spin' : undefined} />
+            <span className="row__label">{checking ? 'Проверяю…' : 'Проверить обновления'}</span>
+            <span className="row__value mono">{__APP_VERSION__}</span>
+          </button>
+        </div>
+      </Section>
+
+      <p className="version">Заначка · версия {__APP_VERSION__}</p>
     </>
   );
 }
