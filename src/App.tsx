@@ -1,6 +1,7 @@
 import { useLiveQuery } from 'dexie-react-hooks';
 import { LayoutDashboard, Plus, ScrollText, Settings2, WalletCards } from 'lucide-react';
-import { Link, Navigate, NavLink, Outlet, Route, Routes } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Link, Navigate, NavLink, Outlet, Route, Routes, useLocation, useNavigationType } from 'react-router-dom';
 import { db } from './db';
 import AccountEditor from './pages/AccountEditor';
 import Accounts from './pages/Accounts';
@@ -8,6 +9,8 @@ import Categories from './pages/Categories';
 import CategoryEditor from './pages/CategoryEditor';
 import History from './pages/History';
 import Home from './pages/Home';
+import Plan from './pages/Plan';
+import RecurringEditor from './pages/RecurringEditor';
 import Settings from './pages/Settings';
 import TxForm from './pages/TxForm';
 import Welcome from './pages/Welcome';
@@ -17,24 +20,40 @@ export default function App() {
   if (accountCount === undefined) return null;
 
   return (
-    <Routes>
-      <Route path="welcome" element={accountCount > 0 ? <Navigate to="/" replace /> : <Welcome />} />
-      <Route element={<TabsLayout />}>
-        <Route index element={accountCount === 0 ? <Navigate to="/welcome" replace /> : <Home />} />
-        <Route path="history" element={<History />} />
-        <Route path="accounts" element={<Accounts />} />
-        <Route path="settings" element={<Settings />} />
-      </Route>
-      <Route path="add" element={<TxForm />} />
-      <Route path="tx/:id" element={<TxForm />} />
-      <Route path="accounts/new" element={<AccountEditor />} />
-      <Route path="accounts/:id" element={<AccountEditor />} />
-      <Route path="settings/categories" element={<Categories />} />
-      <Route path="settings/categories/new" element={<CategoryEditor />} />
-      <Route path="settings/categories/:id" element={<CategoryEditor />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <>
+      <ScrollToTop />
+      <Routes>
+        <Route path="welcome" element={accountCount > 0 ? <Navigate to="/" replace /> : <Welcome />} />
+        <Route element={<TabsLayout />}>
+          <Route index element={accountCount === 0 ? <Navigate to="/welcome" replace /> : <Home />} />
+          <Route path="history" element={<History />} />
+          <Route path="accounts" element={<Accounts />} />
+          <Route path="settings" element={<Settings />} />
+        </Route>
+        <Route path="add" element={<TxForm />} />
+        <Route path="tx/:id" element={<TxForm />} />
+        <Route path="plan" element={<Plan />} />
+        <Route path="plan/new" element={<RecurringEditor />} />
+        <Route path="plan/:id" element={<RecurringEditor />} />
+        <Route path="accounts/new" element={<AccountEditor />} />
+        <Route path="accounts/:id" element={<AccountEditor />} />
+        <Route path="settings/categories" element={<Categories />} />
+        <Route path="settings/categories/new" element={<CategoryEditor />} />
+        <Route path="settings/categories/:id" element={<CategoryEditor />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </>
   );
+}
+
+/** New screens open at the top; going back keeps the browser's restored scroll position. */
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  const navigationType = useNavigationType();
+  useEffect(() => {
+    if (navigationType !== 'POP') window.scrollTo(0, 0);
+  }, [pathname, navigationType]);
+  return null;
 }
 
 const TABS = [

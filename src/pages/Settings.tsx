@@ -1,5 +1,5 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { ChevronRight, Download, ShieldCheck, Tags, TriangleAlert, Upload } from 'lucide-react';
+import { CalendarClock, ChevronRight, Download, ShieldCheck, Tags, TriangleAlert, Upload } from 'lucide-react';
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useConfirm, useToast } from '../components/Feedback';
@@ -10,7 +10,7 @@ import { downloadBackup, readBackup, restoreBackup } from '../lib/backup';
 import { daysSince } from '../lib/dates';
 import { plural } from '../lib/format';
 
-const APP_VERSION = '0.1.0';
+const APP_VERSION = '0.2.0';
 
 function ago(timestamp: number): string {
   const days = daysSince(timestamp);
@@ -62,6 +62,11 @@ export default function Settings() {
 
       <Section title="Настройка">
         <div className="list">
+          <Link to="/plan" className="row">
+            <CalendarClock size={20} strokeWidth={1.75} />
+            <span className="row__label">Регулярные платежи и прогноз</span>
+            <ChevronRight size={18} className="row__chev" />
+          </Link>
           <Link to="/settings/categories" className="row">
             <Tags size={20} strokeWidth={1.75} />
             <span className="row__label">Категории</span>

@@ -44,6 +44,24 @@ export interface Transaction {
   createdAt: number;
 }
 
+export type Period = 'week' | 'month' | 'quarter' | 'year';
+
+/** A payment or income that repeats: rent, subscriptions, salary. Used for the forecast. */
+export interface Recurring {
+  id: number;
+  kind: CategoryKind;
+  name: string;
+  /** Per occurrence, in cents. */
+  amount: number;
+  period: Period;
+  /** First counted payment date 'YYYY-MM-DD'; the schedule repeats from it. */
+  startDate: string;
+  categoryId?: number;
+  /** Paused items stay in the list but are left out of the forecast. */
+  active: boolean;
+  createdAt: number;
+}
+
 export interface Meta {
   key: string;
   value: unknown;
@@ -54,6 +72,7 @@ export const db = new Dexie('my-finance') as Dexie & {
   accounts: EntityTable<Account, 'id'>;
   categories: EntityTable<Category, 'id'>;
   transactions: EntityTable<Transaction, 'id'>;
+  recurring: EntityTable<Recurring, 'id'>;
   meta: EntityTable<Meta, 'key'>;
 };
 
@@ -62,6 +81,10 @@ db.version(1).stores({
   categories: '++id, kind',
   transactions: '++id, date, accountId, toAccountId, categoryId',
   meta: 'key',
+});
+
+db.version(2).stores({
+  recurring: '++id, kind',
 });
 
 const DEFAULT_CATEGORIES: Omit<Category, 'id' | 'order' | 'archived'>[] = [

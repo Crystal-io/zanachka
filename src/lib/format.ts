@@ -30,6 +30,12 @@ export function moneyParts(cents: number) {
   };
 }
 
+/** Rounded whole euros without the currency sign, for dense tables: 1061950 → '10 620'. */
+export function formatWhole(cents: number): string {
+  const text = integer.format(Math.round(Math.abs(cents) / 100));
+  return cents < 0 ? MINUS + text : text;
+}
+
 export function formatPercent(ratio: number): string {
   return percent.format(ratio);
 }

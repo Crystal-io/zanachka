@@ -1,15 +1,24 @@
 import { useLiveQuery } from 'dexie-react-hooks';
-import { Plus, ShieldAlert } from 'lucide-react';
+import { CalendarClock, ChevronRight, Plus, ShieldAlert } from 'lucide-react';
 import { useMemo, useState, type CSSProperties } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { AccountNote } from '../components/AccountNote';
 import { TxRow } from '../components/TxRow';
 import { CatIcon, MonthSwitcher, Section } from '../components/ui';
-import { byNewest, db } from '../db';
-import { useAccounts, useBalances, useById, useCategories, useMeta, useMonthTransactions } from '../hooks';
+import { byNewest, db, type Recurring } from '../db';
+import {
+  useAccounts,
+  useBalances,
+  useById,
+  useCategories,
+  useMeta,
+  useMonthTransactions,
+  useRecurring,
+} from '../hooks';
 import { downloadBackup } from '../lib/backup';
-import { currentMonth, daysSince, monthName } from '../lib/dates';
+import { currentMonth, daysSince, monthGenitive, monthName } from '../lib/dates';
 import { formatMoney, formatPercent, moneyParts, plural } from '../lib/format';
+import { forecast, monthlyTotals } from '../lib/plan';
 import { useToast } from '../components/Feedback';
 
 const BACKUP_REMIND_DAYS = 7;
@@ -32,6 +41,7 @@ export default function Home() {
   );
   const txCount = useLiveQuery(() => db.transactions.count(), []);
   const lastBackupAt = useMeta<number>('lastBackupAt');
+  const recurring = useRecurring();
   const accountById = useById(accounts);
   const categoryById = useById(categories);
   const [showAllCategories, setShowAllCategories] = useState(false);
@@ -103,6 +113,8 @@ export default function Home() {
           <p className="hero__empty">Запишите доход или расход — здесь появится итог месяца.</p>
         )}
       </section>
+
+      <PlanCard items={recurring ?? []} balance={total} />
 
       {needsBackup && (
         <div className="banner">
@@ -204,6 +216,41 @@ export default function Home() {
         )}
       </Section>
     </>
+  );
+}
+
+/** Teaser for the plan screen: what is left after regular payments and where the balance heads. */
+function PlanCard({ items, balance }: { items: Recurring[]; balance: number }) {
+  const hasPlan = items.some((r) => r.active);
+  const { free } = monthlyTotals(items);
+  const yearAhead = hasPlan ? forecast(items, balance)[11] : null;
+
+  return (
+    <Link to="/plan" className="plan-card">
+      <span className="plan-card__icon">
+        <CalendarClock size={22} strokeWidth={1.75} />
+      </span>
+      <span className="plan-card__main">
+        {yearAhead ? (
+          <>
+            <span className="plan-card__title">
+              {formatMoney(free, { sign: true, whole: true })} в месяц после регулярных платежей
+            </span>
+            <span className="plan-card__sub">
+              К концу {monthGenitive(yearAhead.month)} на счетах ≈&nbsp;{formatMoney(yearAhead.balance, { whole: true })}
+            </span>
+          </>
+        ) : (
+          <>
+            <span className="plan-card__title">Регулярные платежи и прогноз</span>
+            <span className="plan-card__sub">
+              Добавьте аренду, подписки и зарплату — покажу, сколько будет на счетах через год
+            </span>
+          </>
+        )}
+      </span>
+      <ChevronRight size={20} className="plan-card__chev" />
+    </Link>
   );
 }
 
